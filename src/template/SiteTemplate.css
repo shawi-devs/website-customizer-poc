@@ -1,0 +1,328 @@
+/* ─── Minimal browser normalize ──────────────────────────────────────────── */
+html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+body { margin: 0; }
+article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary { display: block; }
+audio,canvas,progress,video { vertical-align: baseline; display: inline-block; }
+audio:not([controls]) { height: 0; display: none; }
+[hidden],template { display: none; }
+a { background-color: transparent; }
+a:active,a:hover { outline: 0; }
+img { border: 0; vertical-align: middle; max-width: 100%; display: inline-block; }
+svg:not(:root) { overflow: hidden; }
+* { box-sizing: border-box; }
+
+/* ─── Webflow nav utilities (need container-query targeting — can't use Tailwind v3) ─ */
+.w-inline-block  { max-width: 100%; display: inline-block; }
+.w-list-unstyled { padding-left: 0; list-style: none; }
+.w-embed::before,.w-embed::after { content: " "; display: table; }
+.w-embed::after { clear: both; }
+
+.w-nav { z-index: 1000; background: transparent; position: relative; }
+
+/* Hamburger: hidden on desktop, shown via container query below */
+.w-nav-button {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  padding: 10px;
+  display: none;
+  position: relative;
+  background: none;
+  border: none;
+}
+
+@container site (max-width: 991px) {
+  .w-nav[data-collapse="medium"] .w-nav-menu  { display: none; }
+  .w-nav[data-collapse="medium"] .w-nav-button { display: block; }
+}
+
+/* ─── CSS design tokens ───────────────────────────────────────────────────── */
+:root {
+  --black:                      black;
+  --white:                      white;
+  --background-secondary:       #201a1c;
+  --on-surface-variant:         #514347;
+  --on-surface:                 #201a1c;
+  --surface:                    #fffbff;
+  --surface-variant:            #f2dee3;
+  --dark-on-surface-variant:    #d5c2c7;
+  --secondary-90:               #90f7bf;
+  --dark-primary:               #ffb0ce;
+  --surface1:                   #faf2f7;
+  --background-primary:         #f4f7f9;
+  --outline-variant:            #d5c2c7;
+  --primary-90:                 #ffd9e5;
+  --on-primary:                 #3e0022;
+  --primary:                    #f28bb6;
+  --secondary-container-opacity:#90f7bf;
+  --outline:                    #837378;
+  --default-radius:             16px;
+  --secondary-91:               #006c45;
+  --surface-2:                  #f7ecf3;
+  --secondary-20:               #003822;
+  --primary-container:          #ffd9e5;
+  --primary-95:                 #ffecf1;
+}
+
+/* ─── Template container (required for @container queries to fire) ────────── */
+.body {
+  background-color: #fafafa;
+  overflow: visible;
+  container-type: inline-size;
+  container-name: site;
+}
+
+.site-container {
+  background-color: transparent;
+  position: relative;
+  top: 0;
+  overflow: visible;
+}
+
+/* ─── Complex gradients that Tailwind cannot express ─────────────────────── */
+.container-background {
+  background-image:
+    linear-gradient(90deg, var(--background-secondary) 65%, transparent 78%),
+    url("../images/local-laundry-bg.avif");
+  background-position: 0 0, 100%;
+  background-size: auto, contain;
+}
+
+/* ─── Responsive @container breakpoints ──────────────────────────────────── */
+
+@container site (max-width: 991px) {
+  .navbar-logo-left-container { position: sticky; }
+
+  .container     { max-width: 728px; }
+  .container.horizontal { column-gap: 24px; row-gap: 24px; flex-flow: row; }
+  .container.split.big  { column-gap: 64px; row-gap: 64px; }
+
+  .actions-block-mobile {
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    display: flex;
+  }
+  .right-content { display: none; }
+
+  .hero-wrapper.vertical.width-80 { width: 100%; padding-top: 0; padding-left: 0; }
+  .cards-container          { width: 100%; }
+  .cards-container.inverted { padding-left: 0; padding-right: 0; }
+  .container-background     { padding: 40px; }
+  .container-green          { padding: 64px 40px; }
+  .service-header           { row-gap: 48px; flex-direction: column; }
+  .feature-container        { flex-flow: column; }
+  .feature-image.big        { width: 80%; }
+  .hero-img                 { width: 40%; overflow: clip; }
+}
+
+@container site (max-width: 767px) {
+  .navbar-logo-left-container { background-color: var(--white); max-width: 100%; }
+  .container { padding-left: 20px; padding-right: 20px; }
+  .container.horizontal { flex-flow: column; justify-content: center; align-items: center; }
+  .container.split      { flex-flow: column; }
+
+  .footer-content { column-gap: 20px; row-gap: 20px; margin-top: 40px; }
+  .footer-block   { flex-flow: column; justify-content: flex-start; align-items: flex-start; }
+  .service-header { row-gap: 48px; flex-direction: column; }
+
+  .flex-horizontal-container {
+    column-gap: 16px; row-gap: 16px;
+    flex-flow: column; justify-content: space-between; align-items: flex-start;
+  }
+  .cards-container { flex-flow: column; }
+  .container-green { flex-flow: column; }
+  .logo-social-block {
+    column-gap: 24px; row-gap: 24px;
+    flex-flow: column; justify-content: space-between; align-items: flex-start;
+  }
+  .testimonial-header { flex-flow: column; justify-content: center; align-items: flex-start; }
+  .info-vps-container { flex-flow: column; justify-content: center; align-items: flex-start; }
+}
+
+@container site (max-width: 479px) {
+  .navbar-logo-left-container {
+    z-index: 2000;
+    background-color: #ffffffb3;
+    padding: 8px 0;
+    position: sticky;
+    top: 0;
+  }
+  .container        { max-width: none; margin-bottom: 0; padding-left: 20px; padding-right: 20px; }
+  .container.horizontal { flex-flow: column; padding: 0; }
+  .container.gap-120    { row-gap: 80px; padding-left: 0; padding-right: 0; }
+  .container.split      { flex-flow: column; padding-left: 0; padding-right: 0; }
+
+  .display-large  { width: 100%; font-size: 48px; line-height: 56px; }
+  .display-large.header { height: 224px; }
+  .display-medium { font-size: 36px; line-height: 48px; }
+  .display-medium.inverted.width-70 { width: 100%; }
+  .display-small  { font-size: 28px; line-height: 36px; }
+
+  .hero-img { width: 90%; }
+  .blocks   { height: auto; margin-top: 0; padding-top: 80px; padding-bottom: 80px; }
+  .cards-container          { flex-flow: column; }
+  .cards-container.inverted { width: 100%; padding-left: 0; padding-right: 0; }
+
+  .container-background {
+    background-image:
+      linear-gradient(0deg, var(--background-secondary) 65%, transparent),
+      url("../images/local-laundry-bg.avif");
+    background-position: 0 0, 50% 0;
+    background-size: auto, contain;
+    padding: 40px 24px;
+  }
+  .container-green { flex-flow: column; padding: 40px 24px; }
+
+  .button-container { row-gap: 8px; flex-direction: column; align-items: flex-start; display: flex; }
+  .list-item.bottom-margin-24px {
+    column-gap: 16px; row-gap: 16px;
+    flex-direction: column; margin-bottom: 0; display: flex;
+  }
+  .footer-block { column-gap: 48px; row-gap: 48px; flex-direction: column; }
+  .footer-links-container { justify-content: flex-start; align-items: center; width: 100%; }
+  .logo-social-block {
+    column-gap: 24px; row-gap: 24px;
+    flex-flow: column; justify-content: space-between; align-items: flex-start;
+  }
+  .flex-horizontal-container {
+    column-gap: 24px; row-gap: 24px;
+    flex-flow: column; justify-content: space-between; align-items: flex-start;
+  }
+}
+
+/* ─── How It Works blocks ────────────────────────────────────────────────── */
+.hiw-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.hiw-image {
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+@container site (max-width: 767px) {
+  .hiw-block {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .hiw-image {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* ─── Branch Info layout ─────────────────────────────────────────────────── */
+.branch-info-section {
+  display: flex;
+  align-items: stretch;
+  min-height: 500px;
+}
+
+.branch-info-image {
+  flex: 0 0 50%;
+  padding: 32px;
+}
+
+.branch-info-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 72px 80px;
+}
+
+@container site (max-width: 767px) {
+  .branch-info-section { flex-direction: column; }
+  .branch-info-image {
+    flex: none;
+    width: 100%;
+    height: 260px;
+    padding: 20px 20px 0;
+  }
+  .branch-info-text { padding: 48px 24px; }
+}
+
+/* ─── FAQ layout ─────────────────────────────────────────────────────────── */
+.faq-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.faq-left {
+  position: sticky;
+  top: 80px;
+}
+
+@container site (max-width: 767px) {
+  .faq-layout {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .faq-left { position: static; }
+}
+
+/* ─── Why Us grid ───────────────────────────────────────────────────────── */
+.why-us-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+}
+
+@container site (max-width: 767px) {
+  .why-us-grid { grid-template-columns: 1fr; gap: 32px; }
+}
+
+/* ─── Testimonials layout ────────────────────────────────────────────────── */
+.testimonials-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 64px;
+}
+
+.testimonials-left {
+  flex: 0 0 280px;
+  position: sticky;
+  top: 80px;
+}
+
+/* Desktop grid */
+.testimonials-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* Mobile carousel — hidden on desktop */
+.testimonials-carousel { display: none; }
+
+@container site (max-width: 1199px) {
+  .testimonials-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@container site (max-width: 767px) {
+  /* Switch to carousel on mobile */
+  .testimonials-layout { flex-direction: column; gap: 32px; }
+  .testimonials-left { flex: none; position: static; }
+  .testimonials-grid { display: none; }
+  .testimonials-carousel { display: block; width: 100%; }
+
+  .testimonials-carousel-track {
+    display: flex;
+    overflow: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .testimonials-carousel-slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+}
