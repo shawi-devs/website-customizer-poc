@@ -32,7 +32,7 @@ type ViewMode = 'desktop' | 'mobile';
 interface NavItem {
   id: SectionId;
   label: string;
-  Icon: React.FC<{ size?: number; weight?: string }>;
+  Icon: React.ComponentType<{ size?: string | number; weight?: string }>;
   component: React.FC;
 }
 
