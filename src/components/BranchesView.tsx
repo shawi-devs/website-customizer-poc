@@ -8,22 +8,21 @@ import {
   GlobeIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  WarningCircleIcon,
+  SpinnerGapIcon,
 } from '@phosphor-icons/react';
 import { useBranchStore } from '../store/useBranchStore';
-import { Branch } from '../types';
+import { useBranches, ApiBranch } from '../hooks/useBranches';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function formatDate(ts: number): string {
+function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(ts));
+  }).format(new Date(iso));
 }
 
 function validateSubdomain(value: string, existing: string[]): string | null {
@@ -37,24 +36,12 @@ function validateSubdomain(value: string, existing: string[]): string | null {
 // ---------------------------------------------------------------------------
 // Status badge
 // ---------------------------------------------------------------------------
-function StatusBadge({ branch }: { branch: Branch }) {
-  const hasUnpublishedChanges =
-    branch.isPublished &&
-    JSON.stringify(branch.config) !== JSON.stringify(branch.publishedConfig);
-
-  if (!branch.isPublished) {
+function StatusBadge({ isPublished }: { isPublished: boolean }) {
+  if (!isPublished) {
     return (
       <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">
         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block" />
         Unpublished
-      </span>
-    );
-  }
-  if (hasUnpublishedChanges) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 inline-block" />
-        Unpublished changes
       </span>
     );
   }
@@ -67,7 +54,7 @@ function StatusBadge({ branch }: { branch: Branch }) {
 }
 
 // ---------------------------------------------------------------------------
-// New Branch Form (panel above the table)
+// New Branch Form
 // ---------------------------------------------------------------------------
 interface NewBranchFormProps {
   existingSubdomains: string[];
@@ -163,7 +150,7 @@ function NewBranchForm({ existingSubdomains, onCancel, onCreate }: NewBranchForm
 // Branch Row
 // ---------------------------------------------------------------------------
 interface BranchRowProps {
-  branch: Branch;
+  branch: ApiBranch;
   canDelete: boolean;
   onEdit: () => void;
   onDelete: () => void;
@@ -171,32 +158,36 @@ interface BranchRowProps {
 
 function BranchRow({ branch, canDelete, onEdit, onDelete }: BranchRowProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const previewUrl = `/preview/${branch.subdomain}`;
+  const previewUrl = branch.subdomain ? `/preview/${branch.subdomain}` : null;
 
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
       {/* Name + URL */}
       <td className="px-4 py-3">
         <p className="text-sm font-medium text-gray-900">{branch.name}</p>
-        <a
-          href={previewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-indigo-500 hover:underline flex items-center gap-0.5 mt-0.5 w-fit"
-        >
-          <GlobeIcon size={11} />
-          {branch.subdomain}.shawi.app
-        </a>
+        {previewUrl ? (
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-indigo-500 hover:underline flex items-center gap-0.5 mt-0.5 w-fit"
+          >
+            <GlobeIcon size={11} />
+            {branch.subdomain}.shawi.app
+          </a>
+        ) : (
+          <span className="text-xs text-gray-400 mt-0.5 block">No subdomain yet</span>
+        )}
       </td>
 
       {/* Status */}
       <td className="px-4 py-3">
-        <StatusBadge branch={branch} />
+        <StatusBadge isPublished={branch.is_published} />
       </td>
 
       {/* Updated */}
       <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
-        {formatDate(branch.updatedAt)}
+        {formatDate(branch.updated_at)}
       </td>
 
       {/* Actions */}
@@ -226,15 +217,17 @@ function BranchRow({ branch, canDelete, onEdit, onDelete }: BranchRowProps) {
               <PencilSimpleIcon size={13} />
               Edit
             </button>
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md transition-colors"
-              title="Open preview"
-            >
-              <ArrowSquareOutIcon size={13} />
-            </a>
+            {previewUrl && (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md transition-colors"
+                title="Open preview"
+              >
+                <ArrowSquareOutIcon size={13} />
+              </a>
+            )}
             {canDelete && (
               <button
                 onClick={() => setConfirmDelete(true)}
@@ -256,12 +249,13 @@ function BranchRow({ branch, canDelete, onEdit, onDelete }: BranchRowProps) {
 // ---------------------------------------------------------------------------
 export const BranchesView: React.FC = () => {
   const navigate = useNavigate();
-  const { branches, createBranch, deleteBranch, switchBranch } = useBranchStore();
+  const { createBranch, deleteBranch, switchBranch } = useBranchStore();
+  const { data: branches = [], isLoading, error, refetch } = useBranches();
   const [showForm, setShowForm] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const existingSubdomains = branches.map((b) => b.subdomain);
+  const existingSubdomains = branches.flatMap((b) => (b.subdomain ? [b.subdomain] : []));
   const totalPages = Math.max(1, Math.ceil(branches.length / pageSize));
   const paginated = branches.slice((page - 1) * pageSize, page * pageSize);
 
@@ -310,6 +304,20 @@ export const BranchesView: React.FC = () => {
           />
         )}
 
+        {/* Error banner */}
+        {error && (
+          <div className="flex items-center gap-2 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            <WarningCircleIcon size={16} className="shrink-0" />
+            <span>Failed to load branches: {(error as Error).message}</span>
+            <button
+              onClick={() => refetch()}
+              className="ml-auto text-xs font-semibold underline hover:no-underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <table className="w-full text-left">
@@ -322,7 +330,13 @@ export const BranchesView: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {paginated.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-10 text-center">
+                    <SpinnerGapIcon size={20} className="animate-spin text-indigo-500 mx-auto" />
+                  </td>
+                </tr>
+              ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400">
                     No branches yet. Create one above.
@@ -344,7 +358,6 @@ export const BranchesView: React.FC = () => {
 
           {/* Footer: page size + pagination */}
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-            {/* Page size selector */}
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <span>Rows per page:</span>
               {PAGE_SIZE_OPTIONS.map((size) => (
@@ -362,7 +375,6 @@ export const BranchesView: React.FC = () => {
               ))}
             </div>
 
-            {/* Page info + navigation */}
             <div className="flex items-center gap-3 text-xs text-gray-500">
               <span>
                 {branches.length === 0
