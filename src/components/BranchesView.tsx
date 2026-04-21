@@ -13,6 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { useBranchStore } from '../store/useBranchStore';
 import { useBranches, ApiBranch } from '../hooks/useBranches';
+import { useFetchBranch } from '../hooks/useBranch';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
@@ -152,11 +153,12 @@ function NewBranchForm({ existingSubdomains, onCancel, onCreate }: NewBranchForm
 interface BranchRowProps {
   branch: ApiBranch;
   canDelete: boolean;
+  isEditing: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function BranchRow({ branch, canDelete, onEdit, onDelete }: BranchRowProps) {
+function BranchRow({ branch, canDelete, isEditing, onEdit, onDelete }: BranchRowProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const previewUrl = branch.subdomain ? `/preview/${branch.subdomain}` : null;
 
@@ -212,9 +214,12 @@ function BranchRow({ branch, canDelete, onEdit, onDelete }: BranchRowProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={onEdit}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors"
+              disabled={isEditing}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <PencilSimpleIcon size={13} />
+              {isEditing
+                ? <SpinnerGapIcon size={13} className="animate-spin" />
+                : <PencilSimpleIcon size={13} />}
               Edit
             </button>
             {previewUrl && (
@@ -249,8 +254,9 @@ function BranchRow({ branch, canDelete, onEdit, onDelete }: BranchRowProps) {
 // ---------------------------------------------------------------------------
 export const BranchesView: React.FC = () => {
   const navigate = useNavigate();
-  const { createBranch, deleteBranch, switchBranch } = useBranchStore();
+  const { createBranch, deleteBranch, upsertBranch } = useBranchStore();
   const { data: branches = [], isLoading, error, refetch } = useBranches();
+  const { fetchBranch, loadingId } = useFetchBranch();
   const [showForm, setShowForm] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -265,8 +271,10 @@ export const BranchesView: React.FC = () => {
     navigate('/editor');
   };
 
-  const handleEdit = (branchId: string) => {
-    switchBranch(branchId);
+  const handleEdit = async (branchId: string) => {
+    const branch = await fetchBranch(branchId);
+    if (!branch) return;
+    upsertBranch(branch);
     navigate('/editor');
   };
 
@@ -348,6 +356,7 @@ export const BranchesView: React.FC = () => {
                     key={branch.id}
                     branch={branch}
                     canDelete={branches.length > 1}
+                    isEditing={loadingId === branch.id}
                     onEdit={() => handleEdit(branch.id)}
                     onDelete={() => deleteBranch(branch.id)}
                   />

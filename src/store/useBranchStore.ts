@@ -34,6 +34,9 @@ interface BranchStoreState {
   deleteBranch: (id: string) => void;
   switchBranch: (id: string) => void;
 
+  // Upsert a branch fetched from the API and make it active
+  upsertBranch: (branch: Branch) => void;
+
   // Config writes (called by the site config store)
   updateActiveBranchConfig: (updates: Partial<SiteConfig>) => void;
   setActiveBranchConfig: (config: SiteConfig) => void;
@@ -120,6 +123,17 @@ export const useBranchStore = create<BranchStoreState>((set, get) => ({
       }
       persist(branches, activeBranchId);
       return { branches, activeBranchId };
+    });
+  },
+
+  upsertBranch: (branch) => {
+    set((state) => {
+      const exists = state.branches.some((b) => b.id === branch.id);
+      const branches = exists
+        ? state.branches.map((b) => (b.id === branch.id ? branch : b))
+        : [...state.branches, branch];
+      persist(branches, branch.id);
+      return { branches, activeBranchId: branch.id };
     });
   },
 
