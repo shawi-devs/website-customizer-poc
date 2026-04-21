@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSiteConfigStore } from '../../store/useSiteConfigStore';
 import { useBranchStore } from '../../store/useBranchStore';
-import { usePutConfig } from '../../hooks/useConfigApi';
+import { usePutConfig, usePublishBranch } from '../../hooks/useConfigApi';
 import { FormInput, Section } from '../common/index';
 
 export const PublishSection: React.FC = () => {
@@ -13,6 +13,7 @@ export const PublishSection: React.FC = () => {
   const { getActiveBranch, publishActiveBranch } = useBranchStore();
   const activeBranch = getActiveBranch();
   const putConfig = usePutConfig();
+  const { mutate: publishBranch, isPending: isPublishing, isError: publishFailed } = usePublishBranch();
 
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
@@ -35,9 +36,13 @@ export const PublishSection: React.FC = () => {
     JSON.stringify(activeBranch.config) !== JSON.stringify(activeBranch.publishedConfig);
 
   const handlePublish = () => {
-    publishActiveBranch();
-    // Also keep the publishing.isPublished flag in the config in sync
-    updatePublishing({ isPublished: true });
+    if (!activeBranch) return;
+    publishBranch(activeBranch.id, {
+      onSuccess: () => {
+        publishActiveBranch();
+        updatePublishing({ isPublished: true });
+      },
+    });
   };
 
   const handleExportConfig = () => {
@@ -176,10 +181,11 @@ export const PublishSection: React.FC = () => {
         </div>
 
         {/* Publish / Update Button */}
-        <div className="flex gap-3 pt-6 border-t">
+        <div className="flex flex-col gap-2 pt-6 border-t">
           <button
             onClick={handlePublish}
-            className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
+            disabled={isPublishing}
+            className={`flex-1 py-3 rounded-lg font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
               !isPublished
                 ? 'bg-green-600 hover:bg-green-700 text-white'
                 : hasUnpublishedChanges
@@ -187,12 +193,17 @@ export const PublishSection: React.FC = () => {
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
-            {!isPublished
+            {isPublishing
+              ? 'Publishing…'
+              : !isPublished
               ? t('publish.publishButton')
               : hasUnpublishedChanges
               ? 'Update Site'
               : 'Republish'}
           </button>
+          {publishFailed && (
+            <p className="text-xs text-red-600 text-center">Publish failed. Please try again.</p>
+          )}
         </div>
 
         {/* Export/Import */}

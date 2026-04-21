@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useAuthInfo } from '@propelauth/react';
 import { useBranchStore } from '../store/useBranchStore';
 import { apiFetch } from '../lib/api';
@@ -81,4 +82,20 @@ export function usePutConfig() {
     },
     [accessToken]
   );
+}
+
+// ---------------------------------------------------------------------------
+// usePublishBranch — POST /business/branches/{branchId}/publish
+// ---------------------------------------------------------------------------
+export function usePublishBranch() {
+  const { accessToken } = useAuthInfo();
+
+  return useMutation({
+    mutationFn: async (branchId: string) => {
+      if (!accessToken) throw new Error('Not authenticated');
+      await apiFetch(`/business/branches/${branchId}/publish`, accessToken, {
+        method: 'POST',
+      });
+    },
+  });
 }
