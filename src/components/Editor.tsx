@@ -16,6 +16,7 @@ import {
 } from '@phosphor-icons/react';
 import { useSiteConfigStore } from '../store/useSiteConfigStore';
 import { useBranchStore } from '../store/useBranchStore';
+import { useConfigSync } from '../hooks/useConfigApi';
 import SiteTemplate from '../template/SiteTemplate';
 import {
   BrandingSection,
@@ -80,6 +81,8 @@ export const Editor: React.FC = () => {
   const { config } = useSiteConfigStore();
   const { getActiveBranch } = useBranchStore();
   const activeBranch = getActiveBranch();
+
+  const saveStatus = useConfigSync();
 
   const [activeSection, setActiveSection] = useState<SectionId>('branding');
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
@@ -146,13 +149,27 @@ export const Editor: React.FC = () => {
           )}
         </div>
 
-        <button
-          onClick={() => setFullscreenPreview(true)}
-          className="flex items-center gap-1.5 text-sm px-3.5 py-1.5 bg-gray-900 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium"
-        >
-          <ArrowSquareOutIcon size={14} />
-          Preview
-        </button>
+        <div className="flex items-center gap-4">
+          {saveStatus === 'pending' && (
+            <span className="text-xs text-gray-400">Unsaved changes…</span>
+          )}
+          {saveStatus === 'saving' && (
+            <span className="text-xs text-gray-400">Saving…</span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="text-xs text-green-600">Saved</span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="text-xs text-red-500">Save failed</span>
+          )}
+          <button
+            onClick={() => setFullscreenPreview(true)}
+            className="flex items-center gap-1.5 text-sm px-3.5 py-1.5 bg-gray-900 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium"
+          >
+            <ArrowSquareOutIcon size={14} />
+            Preview
+          </button>
+        </div>
       </header>
 
       {/* Body */}

@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSiteConfigStore } from '../../store/useSiteConfigStore';
 import { useBranchStore } from '../../store/useBranchStore';
+import { usePutConfig } from '../../hooks/useConfigApi';
 import { FormInput, Section } from '../common/index';
 
 export const PublishSection: React.FC = () => {
@@ -11,6 +12,7 @@ export const PublishSection: React.FC = () => {
 
   const { getActiveBranch, publishActiveBranch } = useBranchStore();
   const activeBranch = getActiveBranch();
+  const putConfig = usePutConfig();
 
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
@@ -52,19 +54,26 @@ export const PublishSection: React.FC = () => {
 
   const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const json = event.target?.result as string;
-        const success = useSiteConfigStore.getState().importConfig(json);
-        if (success) {
-          alert(t('common.import') + ' successful!');
-        } else {
-          alert('Failed to import config. Invalid JSON.');
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const json = event.target?.result as string;
+      const success = useSiteConfigStore.getState().importConfig(json);
+      if (!success) {
+        alert('Failed to import config. Invalid JSON.');
+        return;
+      }
+      const branch = useBranchStore.getState().getActiveBranch();
+      if (branch) {
+        try {
+          await putConfig(branch.id, useSiteConfigStore.getState().config);
+        } catch {
+          console.error('[Import] PUT config failed');
         }
-      };
-      reader.readAsText(file);
-    }
+      }
+      alert(t('common.import') + ' successful!');
+    };
+    reader.readAsText(file);
   };
 
   const isPublished = activeBranch?.isPublished ?? false;
