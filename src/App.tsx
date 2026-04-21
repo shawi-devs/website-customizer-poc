@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { withAuthInfo, useRedirectFunctions, useLogoutFunction } from '@propelauth/react';
 import { useSiteConfigStore } from './store/useSiteConfigStore';
 import { useBranchStore } from './store/useBranchStore';
 import { Editor } from './components/Editor';
@@ -9,7 +10,7 @@ import SiteTemplate from './template/SiteTemplate';
 import './App.css';
 
 // ---------------------------------------------------------------------------
-// Branch preview route — renders the template for a given subdomain
+// Branch preview route — public, no auth required
 // ---------------------------------------------------------------------------
 function BranchPreview() {
   const { subdomain } = useParams<{ subdomain: string }>();
@@ -28,23 +29,44 @@ function BranchPreview() {
     );
   }
 
-  // Use published config if available, otherwise show draft
   const config = branch.publishedConfig ?? branch.config;
   return <SiteTemplate config={config} />;
 }
 
 // ---------------------------------------------------------------------------
-// App
+// App — protected via withAuthInfo HOC
 // ---------------------------------------------------------------------------
-function App() {
+type AppProps = {
+  isLoggedIn: boolean;
+};
+
+function AppContent({ isLoggedIn }: AppProps) {
   const { i18n } = useTranslation();
   const { config } = useSiteConfigStore();
+  const { redirectToLoginPage } = useRedirectFunctions();
+  const logout = useLogoutFunction();
+  const hasAutoLoginAttempted = useRef(false);
+
+  const onLogin = useCallback(() => {
+    redirectToLoginPage({ postLoginRedirectUrl: window.location.href });
+  }, [redirectToLoginPage]);
+
+  useEffect(() => {
+    if (!isLoggedIn && !hasAutoLoginAttempted.current) {
+      hasAutoLoginAttempted.current = true;
+      onLogin();
+    }
+  }, [isLoggedIn, onLogin]);
 
   useEffect(() => {
     if (config.settings.primaryLanguage !== i18n.language) {
       i18n.changeLanguage(config.settings.primaryLanguage);
     }
   }, [config.settings.primaryLanguage, i18n]);
+
+  if (!isLoggedIn) {
+    return null;
+  }
 
   return (
     <Router>
@@ -55,7 +77,7 @@ function App() {
         {/* Editor for the active branch */}
         <Route path="/editor" element={<Editor />} />
 
-        {/* Branch preview by subdomain */}
+        {/* Branch preview by subdomain — public */}
         <Route path="/preview/:subdomain" element={<BranchPreview />} />
 
         {/* Legacy full preview (uses active branch config) */}
@@ -108,5 +130,7 @@ function App() {
     </Router>
   );
 }
+
+export const App = withAuthInfo(AppContent);
 
 export default App;
