@@ -85,6 +85,23 @@ export function usePutConfig() {
 }
 
 // ---------------------------------------------------------------------------
+// useUpdateBranch — PATCH /business/branches/{branchId}
+// ---------------------------------------------------------------------------
+export function useUpdateBranch() {
+  const { accessToken } = useAuthInfo();
+
+  return useMutation({
+    mutationFn: async ({ branchId, subdomain }: { branchId: string; subdomain: string }) => {
+      if (!accessToken) throw new Error('Not authenticated');
+      await apiFetch(`/business/branches/${branchId}`, accessToken, {
+        method: 'PATCH',
+        body: JSON.stringify({ subdomain }),
+      });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // usePublishBranch — POST /business/branches/{branchId}/publish
 // ---------------------------------------------------------------------------
 export function usePublishBranch() {

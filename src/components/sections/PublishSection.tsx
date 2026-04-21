@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSiteConfigStore } from '../../store/useSiteConfigStore';
 import { useBranchStore } from '../../store/useBranchStore';
-import { usePutConfig, usePublishBranch } from '../../hooks/useConfigApi';
+import { usePutConfig, usePublishBranch, useUpdateBranch } from '../../hooks/useConfigApi';
 import { FormInput, Section } from '../common/index';
 
 export const PublishSection: React.FC = () => {
@@ -14,6 +14,7 @@ export const PublishSection: React.FC = () => {
   const activeBranch = getActiveBranch();
   const putConfig = usePutConfig();
   const { mutate: publishBranch, isPending: isPublishing, isError: publishFailed } = usePublishBranch();
+  const { mutate: updateBranch, isPending: isSavingSubdomain, isError: subdomainFailed, isSuccess: subdomainSaved } = useUpdateBranch();
 
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
@@ -26,8 +27,12 @@ export const PublishSection: React.FC = () => {
       .trim();
 
   const handleSubdomainChange = (value: string) => {
-    const slugified = slugify(value);
-    updatePublishing({ customSubdomain: slugified });
+    updatePublishing({ customSubdomain: slugify(value) });
+  };
+
+  const handleSaveSubdomain = () => {
+    if (!activeBranch) return;
+    updateBranch({ branchId: activeBranch.id, subdomain: publishing.customSubdomain });
   };
 
   // Detect unpublished changes: compare current config to last published snapshot
@@ -149,6 +154,17 @@ export const PublishSection: React.FC = () => {
           <p className="text-sm text-green-600 mt-2">
             https://{publishing.customSubdomain}.shawi.app
           </p>
+          <div className="flex items-center gap-3 mt-3">
+            <button
+              onClick={handleSaveSubdomain}
+              disabled={isSavingSubdomain || !publishing.customSubdomain}
+              className="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSavingSubdomain ? 'Saving…' : 'Validate and save'}
+            </button>
+            {subdomainSaved && <span className="text-xs text-green-600">Subdomain saved</span>}
+            {subdomainFailed && <span className="text-xs text-red-600">Failed to save subdomain</span>}
+          </div>
         </div>
 
         {/* Custom Domain */}
