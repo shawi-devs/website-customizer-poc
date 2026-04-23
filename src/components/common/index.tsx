@@ -1,4 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useAuthInfo } from '@propelauth/react';
+import { uploadImage, ImageUploadType } from '../../lib/api';
 
 // ---------------------------------------------------------------------------
 // FormInput
@@ -206,6 +208,7 @@ interface ImageUploadProps {
   onUpload: (url: string) => void;
   onRemove?: () => void;
   hint?: string;
+  uploadType?: ImageUploadType;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -215,14 +218,26 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   onUpload,
   onRemove,
   hint,
+  uploadType,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const { accessToken } = useAuthInfo();
 
-  const handleFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => onUpload(e.target?.result as string);
-    reader.readAsDataURL(file);
+  const handleFile = async (file: File) => {
+    if (!accessToken) { setUploadError('Not authenticated'); return; }
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const { url } = await uploadImage(file, accessToken, uploadType);
+      onUpload(url);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -245,15 +260,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="text-xs px-3 py-1.5 text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors font-medium"
+                disabled={uploading}
+                className="text-xs px-3 py-1.5 text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors font-medium disabled:opacity-50"
               >
-                Replace
+                {uploading ? 'Uploading…' : 'Replace'}
               </button>
               {onRemove && (
                 <button
                   type="button"
                   onClick={onRemove}
-                  className="text-xs px-3 py-1.5 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                  disabled={uploading}
+                  className="text-xs px-3 py-1.5 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:opacity-50"
                 >
                   Remove
                 </button>
@@ -262,32 +279,41 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           </div>
         ) : (
           <div
-            onClick={() => inputRef.current?.click()}
+            onClick={() => !uploading && inputRef.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-              dragging
-                ? 'border-indigo-400 bg-indigo-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+              uploading
+                ? 'border-indigo-300 bg-indigo-50 cursor-wait'
+                : dragging
+                ? 'border-indigo-400 bg-indigo-50 cursor-pointer'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer'
             }`}
           >
             <div className="flex flex-col items-center gap-1.5">
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-1">
                 <UploadIcon />
               </div>
-              <p className="text-sm font-medium text-gray-700">Click to upload</p>
-              <p className="text-xs text-gray-400">or drag and drop</p>
+              {uploading ? (
+                <p className="text-sm font-medium text-indigo-600">Uploading…</p>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-gray-700">Click to upload</p>
+                  <p className="text-xs text-gray-400">or drag and drop</p>
+                </>
+              )}
               {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
             </div>
           </div>
         )}
+        {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
       </div>
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
         className="hidden"
       />
     </div>
