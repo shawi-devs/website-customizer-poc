@@ -33,6 +33,7 @@ export const BrandingSection: React.FC = () => {
             value={branding.logo.url}
             onUpload={(url) => updateBranding({ logo: { ...branding.logo, url } })}
             hint="SVG or PNG with transparent background"
+            uploadType="logo"
           />
         </div>
       </Section>
@@ -96,6 +97,7 @@ export const BrandingSection: React.FC = () => {
               value={branding.heroImage.url}
               onUpload={(url) => updateBranding({ heroImage: { ...branding.heroImage, url } })}
               hint="Recommended 800×600px · PNG or JPG"
+              uploadType="hero"
             />
           </div>
         </div>

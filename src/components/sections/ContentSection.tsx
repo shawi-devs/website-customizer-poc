@@ -210,6 +210,7 @@ export const ContentSection: React.FC = () => {
             value={content.branchImageUrl ?? ''}
             onUpload={(url) => updateContent({ branchImageUrl: url })}
             onRemove={() => updateContent({ branchImageUrl: '' })}
+            uploadType="branch"
           />
           <FormInput
             label="Google Maps link"
